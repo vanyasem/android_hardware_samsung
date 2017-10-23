@@ -49,19 +49,21 @@ namespace android {
 #define max(a, b)   ((a) > (b) ? (a) : (b))
 
 #define REQ_OEM_HOOK_RAW        RIL_REQUEST_OEM_HOOK_RAW
-#define REQ_SET_CALL_VOLUME     101
-#define REQ_SET_AUDIO_PATH      102
-#define REQ_SET_CALL_CLOCK_SYNC 103
-#define REQ_SET_CALL_RECORDING  104
+#define REQ_SET_CALL_VOLUME         101
+#define REQ_SET_AUDIO_PATH          102
+#define REQ_SET_CALL_CLOCK_SYNC     103
+#define REQ_SET_CALL_RECORDING      104
 #define REQ_SET_CALL_MUTE           105
 #define REQ_GET_CALL_MUTE           106
 #define REQ_SET_CALL_VT_CTRL        107
 #define REQ_SET_TWO_MIC_CTRL        108
-#define REQ_SET_DHA_CTRL        109
+#define REQ_SET_DHA_CTRL            109
 #define REQ_SET_LOOPBACK            110
+#define REQ_SET_AUDIO_MODE          112
+#define REQ_SET_SOUND_CLOCK_MODE    113
 
 // OEM request function ID
-#define OEM_FUNC_SOUND          0x08
+#define OEM_FUNC_SOUND              0x08
 
 // OEM request sub function ID
 #define OEM_SND_SET_VOLUME_CTRL     0x03
@@ -75,6 +77,8 @@ namespace android {
 #define OEM_SND_GET_MUTE        0x0C
 #define OEM_SND_SET_TWO_MIC_CTL     0x0D
 #define OEM_SND_SET_DHA_CTL     0x0E
+#define OEM_SND_SET_AUDIO_MODE  0x10
+#define OEM_SND_SET_SOUND_CLOCK_MODE  0x11
 
 #define OEM_SND_TYPE_VOICE          0x01 // Receiver(0x00) + Voice(0x01)
 #define OEM_SND_TYPE_SPEAKER        0x11 // SpeakerPhone(0x10) + Voice(0x01)
@@ -1009,6 +1013,98 @@ int SetDhaSolution(HRilClient client, DhaSolMode mode, DhaSolSelect select, char
 
     return ret;
 }
+
+ /**
+ * Set audio mode.
+ */
+extern "C"
+int SetAudioMode(HRilClient client, int mode, int mode2) {
+    RilClientPrv *client_prv;
+    int ret;
+    char data[6] = {0,};
+
+    if (client == NULL || client->prv == NULL) {
+        ALOGE("%s: Invalid client %p", __FUNCTION__, client);
+        return RIL_CLIENT_ERR_INVAL;
+    }
+
+    client_prv = (RilClientPrv *)(client->prv);
+
+    if (client_prv->sock < 0 ) {
+        ALOGE("%s: Not connected.", __FUNCTION__);
+        return RIL_CLIENT_ERR_CONNECT;
+    }
+
+    if (mode > 0) {
+		ALOGE("%s: Invalid audio mode", __FUNCTION__);
+		return RIL_CLIENT_ERR_INVAL;
+	}
+
+	ALOGI("%s: Audio mode setting : %d", __FUNCTION__, mode);
+
+    // Make raw data
+    data[0] = OEM_FUNC_SOUND;
+    data[1] = OEM_SND_SET_AUDIO_MODE;
+    data[2] = 0x00;     // data length
+    data[3] = 0x06;     // data length
+    data[4] = mode;
+    data[5] = mode2;
+
+    RegisterRequestCompleteHandler(client, REQ_SET_AUDIO_MODE, NULL);
+
+    ret = SendOemRequestHookRaw(client, REQ_SET_AUDIO_MODE, data, sizeof(data));
+    if (ret != RIL_CLIENT_ERR_SUCCESS) {
+    	RegisterRequestCompleteHandler(client, REQ_SET_AUDIO_MODE, NULL);
+    }
+
+    return ret;
+}
+
+/**
+ * Set sound clock mode.
+ */
+extern "C"
+int SetSoundClockMode(HRilClient client, int mode) {
+    RilClientPrv *client_prv;
+    int ret;
+    char data[5] = {0,};
+
+    if (client == NULL || client->prv == NULL) {
+        ALOGE("%s: Invalid client %p", __FUNCTION__, client);
+        return RIL_CLIENT_ERR_INVAL;
+    }
+
+    client_prv = (RilClientPrv *)(client->prv);
+
+    if (client_prv->sock < 0 ) {
+        ALOGE("%s: Not connected.", __FUNCTION__);
+        return RIL_CLIENT_ERR_CONNECT;
+    }
+
+    if (mode >= 6) {
+		ALOGE("%s: Invalid sound audio mode", __FUNCTION__);
+		return RIL_CLIENT_ERR_INVAL;
+	}
+
+	ALOGI("%s: Set sound clock mode : %d", __FUNCTION__, mode);
+
+    // Make raw data
+    data[0] = OEM_FUNC_SOUND;
+    data[1] = OEM_SND_SET_SOUND_CLOCK_MODE;
+    data[2] = 0x00;     // data length
+    data[3] = 0x05;     // data length
+    data[4] = mode;
+
+    RegisterRequestCompleteHandler(client, REQ_SET_SOUND_CLOCK_MODE, NULL);
+
+    ret = SendOemRequestHookRaw(client, REQ_SET_SOUND_CLOCK_MODE, data, sizeof(data));
+    if (ret != RIL_CLIENT_ERR_SUCCESS) {
+    	RegisterRequestCompleteHandler(client, REQ_SET_SOUND_CLOCK_MODE, NULL);
+    }
+
+    return ret;
+}
+
 
 /**
  * Set LoopbackTest mode, path.

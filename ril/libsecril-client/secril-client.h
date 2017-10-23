@@ -110,6 +110,17 @@ int RegisterUnsolicitedHandler(HRilClient client, uint32_t id, RilOnUnsolicited 
 int RegisterRequestCompleteHandler(HRilClient client, uint32_t id, RilOnComplete handler);
 
 /**
+ * Set audio mode.
+ */
+int SetAudioMode(HRilClient client, int mode, int mode2);
+
+/**
+ * Set sound clock mode.
+ * Return is 0 or error code.
+ */
+int SetSoundClockMode(HRilClient client, int mode);
+
+/**
  * Register error callback. If handler is NULL,
  * the callback is unregistered.
  * The response handler is invoked in the client task context.
